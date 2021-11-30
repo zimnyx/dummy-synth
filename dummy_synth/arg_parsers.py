@@ -1,12 +1,82 @@
 import argparse
-from typing import Callable
+from functools import partial
 from dummy_synth.config_utils import BackendType, Backends
 from dummy_synth.processors import DirProcessor
 from dummy_synth.synthesizers import AbstractSynthesizer
 from dummy_synth.evaluators import AbstractEvaluator
+import boto3
+from local_config import (
+    RECURSIVE_DIR_PROCESSOR_CONFIG,
+    DEFAULT_SYNTHESIZE_SUFFIX,
+    DEFAULT_EVALUATE_SUFFIX,
+)
+from dummy_synth.config_utils import (
+    prepare_processor_dataframe_io_config,
+)
 
 
 class CommandlineArgumentParserFactory:
+    @classmethod
+    def get_basic_processor_kwargs(
+        cls, backends: Backends, args: argparse.Namespace
+    ) -> DirProcessor:
+        processor_kwargs = {
+            "directory": args.dir,
+            "overwrite": args.overwrite,
+        }
+        if "synthesizer" in args:
+            processor_kwargs["synthesizer"] = backends.get_backed_instance(
+                BackendType.SYNTHESIZER, args.synthesizer
+            )
+            processor_kwargs["synthesize_suffix"] = (
+                args.synthesize_suffix or DEFAULT_SYNTHESIZE_SUFFIX
+            )
+
+        if "evaluator" in args:
+            processor_kwargs["evaluator"] = backends.get_backed_instance(
+                BackendType.EVALUATOR, args.evaluator
+            )
+            processor_kwargs["synthesize_suffix"] = (
+                args.synthesize_suffix or DEFAULT_SYNTHESIZE_SUFFIX
+            )
+            processor_kwargs["evaluate_suffix"] = (
+                args.evaluate_suffix or DEFAULT_EVALUATE_SUFFIX
+            )
+        return processor_kwargs
+
+    @classmethod
+    def get_local_dir_processor(
+        cls, backends: Backends, args: argparse.Namespace
+    ) -> DirProcessor:
+        processor_kwargs = cls.get_basic_processor_kwargs(backends, args)
+        processor_kwargs["storage"] = backends.get_backed_instance(
+            BackendType.STORAGE, "LocalDirectoryStorage"
+        )
+        processor_kwargs["io_wrappers"] = prepare_processor_dataframe_io_config(
+            backends, RECURSIVE_DIR_PROCESSOR_CONFIG
+        )
+        return DirProcessor(**processor_kwargs)
+
+    @classmethod
+    def get_s3_dir_processor(
+        cls, backends: Backends, args: argparse.Namespace
+    ) -> DirProcessor:
+        s3_endpoint_config = {"endpoint_url": args.s3_endpoint_url}
+        s3 = boto3.resource("s3", **s3_endpoint_config)
+        processor_kwargs = cls.get_basic_processor_kwargs(backends, args)
+        processor_kwargs["storage"] = backends.get_backed_instance(
+            BackendType.STORAGE, "S3Storage", s3, args.s3_bucket
+        )
+        processor_kwargs["io_wrappers"] = prepare_processor_dataframe_io_config(
+            backends,
+            RECURSIVE_DIR_PROCESSOR_CONFIG,
+            # pandas will use this for s3fs config
+            storage_options={
+                "client_kwargs": s3_endpoint_config,
+            },
+        )
+        return DirProcessor(**processor_kwargs)
+
     @classmethod
     def add_debug(cls, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
@@ -86,8 +156,6 @@ class CommandlineArgumentParserFactory:
     def get_parser(
         cls,
         supported_backends: Backends,
-        get_local_dir_processor: Callable[[argparse.Namespace], DirProcessor],
-        get_s3_dir_processor: Callable[[argparse.Namespace], DirProcessor],
         default_synthesizer: AbstractSynthesizer,
         default_evaluator: AbstractEvaluator,
     ) -> argparse.ArgumentParser:
@@ -113,7 +181,9 @@ class CommandlineArgumentParserFactory:
                 {output_description}
                 """,
         )
-        parser_synthesize.set_defaults(get_processor=get_local_dir_processor)
+        parser_synthesize.set_defaults(
+            get_processor=partial(cls.get_local_dir_processor, supported_backends)
+        )
         cls.add_debug(parser_synthesize)
         cls.add_overwrite(parser_synthesize)
         cls.add_synthesize_suffix(parser_synthesize)
@@ -129,7 +199,9 @@ class CommandlineArgumentParserFactory:
                 Makes sense to run only after synthesize command.
                 """,
         )
-        parser_evaluate.set_defaults(get_processor=get_local_dir_processor)
+        parser_evaluate.set_defaults(
+            get_processor=partial(cls.get_local_dir_processor, supported_backends)
+        )
         cls.add_debug(parser_evaluate)
         cls.add_overwrite(parser_evaluate)
         cls.add_synthesize_suffix(parser_evaluate)
@@ -146,7 +218,7 @@ class CommandlineArgumentParserFactory:
                 """,
         )
         parser_synthesize_and_evaluate.set_defaults(
-            get_processor=get_local_dir_processor
+            get_processor=partial(cls.get_local_dir_processor, supported_backends)
         )
         cls.add_debug(parser_synthesize_and_evaluate)
         cls.add_overwrite(parser_synthesize_and_evaluate)
@@ -170,7 +242,9 @@ class CommandlineArgumentParserFactory:
                 For AWS region use AWS_DEFAULT_REGION env variable.
                 """,
         )
-        parser_synthesize_s3.set_defaults(get_processor=get_s3_dir_processor)
+        parser_synthesize_s3.set_defaults(
+            get_processor=partial(cls.get_s3_dir_processor, supported_backends)
+        )
         cls.add_debug(parser_synthesize_s3)
         cls.add_overwrite(parser_synthesize_s3)
         cls.add_synthesize_suffix(parser_synthesize_s3)

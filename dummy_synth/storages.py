@@ -16,11 +16,14 @@ class AbstractFileStorage(ABC):
 
 
 class LocalDirectoryStorage(AbstractFileStorage):
+    def error(self, e):
+        raise e
+
     def get_files(self, directory: str) -> Generator[str, None, None]:
         directory = os.path.abspath(directory)
         if not self.exists(directory):
             raise Exception(f"Directory {directory} does not exists.")
-        for dirpath, dirs, files in os.walk(directory):
+        for dirpath, dirs, files in os.walk(directory, onerror=self.error):
             for file in files:
                 yield os.path.join(dirpath, file)
 
