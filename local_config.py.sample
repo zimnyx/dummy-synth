@@ -1,0 +1,45 @@
+from dummy_synth.config_utils import BackendType
+from dummy_synth.storages import (
+    LocalDirectoryStorage,
+    S3Storage,
+)
+from dummy_synth.evaluators import ConstantEvaluator, RandomEvaluator
+from dummy_synth.synthesizers import DummySynthesizer, DummySynthesizerEmptyResult
+from dummy_synth.dataframe_io import CsvIO, ParquetIO
+
+
+BACKENDS = {
+    BackendType.DATAFRAME_IO: {
+        "csv_default": CsvIO,
+        "parquet_default": ParquetIO,
+    },
+    BackendType.STORAGE: {
+        "LocalDirectoryStorage": LocalDirectoryStorage,
+        "S3Storage": S3Storage,
+    },
+    BackendType.SYNTHESIZER: {
+        "DummySynthesizer": DummySynthesizer,
+        "DummySynthesizerEmptyResult": DummySynthesizerEmptyResult,
+    },
+    BackendType.EVALUATOR: {
+        "RandomEvaluator": RandomEvaluator,
+        "ConstantEvaluator": ConstantEvaluator,
+    },
+}
+
+DEFAULT_SYNTHESIZER = "DummySynthesizer"
+DEFAULT_EVALUATOR = "RandomEvaluator"
+
+DEFAULT_SYNTHESIZE_SUFFIX = '.syn'
+DEFAULT_EVALUATE_SUFFIX = '.eval'
+
+DATASET_IO_READ = "read"
+DATASET_IO_WRITE = "write"
+
+RECURSIVE_DIR_PROCESSOR_CONFIG = {
+    ".csv": {DATASET_IO_READ: "csv_default", DATASET_IO_WRITE: "csv_default"},
+    ".parquet": {
+        DATASET_IO_READ: "parquet_default",
+        DATASET_IO_WRITE: "parquet_default",
+    },
+}

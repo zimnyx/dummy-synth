@@ -1,0 +1,5 @@
+- process large files in chunks (easy for CSV, non-trivial for parquet)
+- run tests in docker container
+- add integration test for S3 using docker/localstack
+- fix pip error when installing requirements.txt: "ERROR: aiobotocore 1.4.2 has requirement botocore<1.20.107,>=1.20.106, but you'll have botocore 1.20.112 which is incompatible." (app work fine, despite this error)
+

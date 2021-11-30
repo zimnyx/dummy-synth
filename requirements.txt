@@ -1,0 +1,4 @@
+pandas
+fastparquet
+s3fs
+boto3==1.17.*

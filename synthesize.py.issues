@@ -1,0 +1,73 @@
+I'm attaching refactored code - see README.md. See also TODO for outstanding issues I didn't address.
+
+Here are issues I found in synthesize.py:
+
+
+=== GENERAL CONSIDERATIONS ===
+
+0) It won't process files from directory passed as commandline argument.
+When Synthesizer.__init__() reads files from folder given as commandline agrument,
+Synthesizer.current_folder_files is filled with just file names, not file paths.
+
+1) Script is using os.listdir() to traverse directory. It won't scan subdirectories,
+while using subdirectories tree is very popular big data technique for data partitioning.
+Better to use os.walk() to do recursive directory scan.
+
+
+2) Input data may may be partitioned into many files in subdirectories.
+In such case, directories names are part of data.
+Do we need to use this data when sythetisation is performed?
+
+
+3) Memory
+3a) In current solution, we read whole file (parquet or CSV) into memory. If file is large enough, we may run out of memory.
+One solution would be to process data in chunks, which is already supported by Pandas' read_csv().
+With read_parquet()/to_parquet is may be more tricky and we could think of partitioning parquet data so it never exceeds machine memory.
+If it's not an option, we could go more low-level with parquet engine pyarrow to get data in chunks.
+
+3b) Synthesize results for all files are stored in memory before writng them - we can hit server memory limit.
+
+4) Synthesizer supports writing output in same format as input data. It's not elastic, we should allow any IO class for writing result.
+
+5) Lack of user-friendly command line. Python's argparse could be used to provide such functionality.
+
+6) Would be way better to have some unit and integration tests.
+
+7) Comments are not precise and mostly could be removed if code is clear about its responsibility.
+
+
+
+=== PROBLEMS WITH CODE LAYOUT, CODE SMELLS, ETC. ===
+
+Generally code mixes most responsibilites in one class called Synthesizer (with small exception for *IO classes).
+It makes code hard to extend, so it needs to be refactored and splitted into:
+ * storages (localdisk, S3, ...)
+ * dataframe-IO (CsvIO, ParquetIO, ...)
+ * synthesiers (DummySynthesizer, ...)
+ * evaluators (random, ...)
+ * commandline argument parser
+ * class that runs actuall aplication logic
+While in first glance it will make code more complicated, it will allow easy extending and configuration.
+
+1) We have tight coupling - Synthesizer instantiates IO classes directly.
+In result, there is no way to use Synthesizer with different *IO classes, without modyfying Synthesizer itself.
+According to Open/closed Principle "software entities should be open for extension, but closed for modification".
+It can be fixed by using dependency injection: injecting IO instances into Synthesizer instance (see also next point)
+Same goes for direct dependency on synthesize() and evaluate() top-level functions.
+
+2) Synthesizer is aware of IO format, while should be format agnostic (Single Responsibility Principle).
+It leads to many problems, especially those similar structures of if/elif/else in write() and synthesize() methods.
+See my refactrored code as example solution - DirProcessor.process_file().
+
+3) Currently, only local disk storage is suppoted. It's really hard to add support for different storages, like S3 or database.
+To support this Synthesizer would need to allow to inject storage object and replace os.walk() with storage.list_files().
+
+4) We could think of better name for Synthesizer class as it may be confusing what is responsibility of those two:
+ * Synthesizer
+ * synthesize() (top level function)
+
+5) Synthesizer.current_folder_files name is incorrect, should be rather folder_files.
+
+6) Some comments are not precise: Synthesizer class docs says it process only CSV, while Parquet format is supported too.
+
+
