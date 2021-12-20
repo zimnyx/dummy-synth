@@ -10,8 +10,13 @@ from dummy_synth.config_utils import (
     Backends,
 )
 
+"""
+Command line tools for data synthesization and evaluation.
+"""
+
 
 if __name__ == "__main__":
+    # backends for IO & storage
     backends = Backends(BACKENDS)
     args = CommandlineArgumentParserFactory.get_parser(
         backends,

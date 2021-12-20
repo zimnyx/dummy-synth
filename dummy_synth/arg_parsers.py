@@ -16,6 +16,10 @@ from dummy_synth.config_utils import (
 
 
 class CommandlineArgumentParserFactory:
+    """
+    Factory for commandline parser providing evaluate and synthesze commands.
+    """
+
     output_description = "Output data will be written to separate files in same format/location as original data file."
 
     @classmethod
