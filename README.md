@@ -42,6 +42,17 @@ AWS_DEFAULT_REGION=us-east-1 AWS_SECRET_ACCESS_KEY=test AWS_ACCESS_KEY_ID=test p
 ```
 
 
+
+## How to run tests (Linux/bash)
+
+```
+. env/bin/activate
+pip install -r requirements_test.txt
+pytest tests
+```
+
+
+
 ## How to start local instance of S3/localstack (Linux/bash)
 
 ```
@@ -49,20 +60,3 @@ AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test LOCALSTACK_SERVICES=s3 docker 
 
 ```
 Just connect to this service using with your favourite tools using endpoint-url https://localhost.localstack.cloud:4566 and create my_bucket with directory containing CSV/Parquet files.
-
-
-## How to set up test environment (Linux/bash)
-
-```
-python -m venv env
-. env/bin/activate
-pip install -r requirements_test.txt
-```
-
-## How to run tests (Linux/bash)
-
-```
-. env/bin/activate
-pytest tests
-```
-
