@@ -16,6 +16,41 @@ from dummy_synth.config_utils import (
 
 
 class CommandlineArgumentParserFactory:
+    output_description = "Output data will be written to separate files in same format/location as original data file."
+
+    @classmethod
+    def get_parser(
+        cls,
+        supported_backends: Backends,
+        default_synthesizer: AbstractSynthesizer,
+        default_evaluator: AbstractEvaluator,
+    ) -> argparse.ArgumentParser:
+
+        parser_main = argparse.ArgumentParser(
+            description=f"""
+                Traverse directory recursively and for each file with supported extension, perform following action(s): synthesize or evaluate.
+                {cls.output_description}
+                """
+        )
+        parser_main.add_argument("--version", action="version", version="0.1-dummy")
+        subparsers = parser_main.add_subparsers(
+            dest="command",
+            required=True,
+            title="available commands",
+        )
+        # synthesize
+        cls.setup_synthezise_parser(supported_backends, default_synthesizer, subparsers)
+
+        # evaluate
+        cls.setup_evaluate_parser(supported_backends, default_evaluator, subparsers)
+
+        # synthesize-s3
+        cls.setup_synthezise_s3_parser(
+            supported_backends, default_synthesizer, subparsers
+        )
+
+        return parser_main
+
     @classmethod
     def get_basic_processor_kwargs(
         cls, backends: Backends, args: argparse.Namespace
@@ -153,106 +188,76 @@ class CommandlineArgumentParserFactory:
         parser.add_argument("s3_bucket", help="S3 bucket")
 
     @classmethod
-    def get_parser(
+    def setup_synthezise_parser(
         cls,
         supported_backends: Backends,
         default_synthesizer: AbstractSynthesizer,
-        default_evaluator: AbstractEvaluator,
-    ) -> argparse.ArgumentParser:
-        output_description = "Output data will be written to separate files in same format/location as original data file."
-
-        parser_main = argparse.ArgumentParser(
-            description=f"""
-                Traverse directory recursively and for each file with supported extension, perform following action(s): synthesize or/and evaluate.
-                {output_description}
-                """
-        )
-        parser_main.add_argument("--version", action="version", version="0.1-dummy")
-        subparsers = parser_main.add_subparsers(
-            dest="command",
-            required=True,
-            title="available commands",
-        )
-        # synthesize
-        parser_synthesize = subparsers.add_parser(
+        subparsers: argparse._SubParsersAction,
+    ) -> None:
+        parser = subparsers.add_parser(
             "synthesize",
             description=f"""
                 Run synthetize on files in local dir.
-                {output_description}
+                {cls.output_description}
                 """,
         )
-        parser_synthesize.set_defaults(
+        parser.set_defaults(
             get_processor=partial(cls.get_local_dir_processor, supported_backends)
         )
-        cls.add_debug(parser_synthesize)
-        cls.add_overwrite(parser_synthesize)
-        cls.add_synthesize_suffix(parser_synthesize)
-        cls.add_synthesizer(parser_synthesize, supported_backends, default_synthesizer)
-        cls.add_dir(parser_synthesize)
+        cls.add_debug(parser)
+        cls.add_overwrite(parser)
+        cls.add_synthesize_suffix(parser)
+        cls.add_synthesizer(parser, supported_backends, default_synthesizer)
+        cls.add_dir(parser)
 
-        # evaluate
-        parser_evaluate = subparsers.add_parser(
-            "evaluate",
-            description=f"""
-                Run evaluate on data & synthesize files from local dir.
-                {output_description}
-                Makes sense to run only after synthesize command.
-                """,
-        )
-        parser_evaluate.set_defaults(
-            get_processor=partial(cls.get_local_dir_processor, supported_backends)
-        )
-        cls.add_debug(parser_evaluate)
-        cls.add_overwrite(parser_evaluate)
-        cls.add_synthesize_suffix(parser_evaluate)
-        cls.add_evaluate_suffix(parser_evaluate)
-        cls.add_evaluator(parser_evaluate, supported_backends, default_evaluator)
-        cls.add_dir(parser_evaluate)
-
-        # synthesize-and-evaluate
-        parser_synthesize_and_evaluate = subparsers.add_parser(
-            "synthesize-and-evaluate",
-            description=f"""
-                Run synthetize & evaluate on files in local dir.
-                {output_description}
-                """,
-        )
-        parser_synthesize_and_evaluate.set_defaults(
-            get_processor=partial(cls.get_local_dir_processor, supported_backends)
-        )
-        cls.add_debug(parser_synthesize_and_evaluate)
-        cls.add_overwrite(parser_synthesize_and_evaluate)
-        cls.add_evaluate_suffix(parser_synthesize_and_evaluate)
-        cls.add_evaluator(
-            parser_synthesize_and_evaluate, supported_backends, default_evaluator
-        )
-        cls.add_synthesize_suffix(parser_synthesize_and_evaluate)
-        cls.add_synthesizer(
-            parser_synthesize_and_evaluate, supported_backends, default_synthesizer
-        )
-        cls.add_dir(parser_synthesize_and_evaluate)
-
-        # synthesize-s3
-        parser_synthesize_s3 = subparsers.add_parser(
+    @classmethod
+    def setup_synthezise_s3_parser(
+        cls,
+        supported_backends: Backends,
+        default_synthesizer: AbstractSynthesizer,
+        subparsers: argparse._SubParsersAction,
+    ) -> None:
+        parser = subparsers.add_parser(
             "synthesize-s3",
             description=f"""
                 Run synthesize on files from S3 bucket.
-                {output_description}
+                {cls.output_description}
                 For credentials use AWS_SECRET_ACCESS_KEY and AWS_ACCESS_KEY_ID env variables.
                 For AWS region use AWS_DEFAULT_REGION env variable.
                 """,
         )
-        parser_synthesize_s3.set_defaults(
+        parser.set_defaults(
             get_processor=partial(cls.get_s3_dir_processor, supported_backends)
         )
-        cls.add_debug(parser_synthesize_s3)
-        cls.add_overwrite(parser_synthesize_s3)
-        cls.add_synthesize_suffix(parser_synthesize_s3)
-        cls.add_synthesizer(
-            parser_synthesize_s3, supported_backends, default_synthesizer
-        )
-        cls.add_s3_endpoint_url(parser_synthesize_s3)
-        cls.add_s3_bucket(parser_synthesize_s3)
-        cls.add_dir(parser_synthesize_s3)
+        cls.add_debug(parser)
+        cls.add_overwrite(parser)
+        cls.add_synthesize_suffix(parser)
+        cls.add_synthesizer(parser, supported_backends, default_synthesizer)
+        cls.add_s3_endpoint_url(parser)
+        cls.add_s3_bucket(parser)
+        cls.add_dir(parser)
 
-        return parser_main
+    @classmethod
+    def setup_evaluate_parser(
+        cls,
+        supported_backends: Backends,
+        default_evaluator: AbstractEvaluator,
+        subparsers: argparse._SubParsersAction,
+    ) -> None:
+        parser = subparsers.add_parser(
+            "evaluate",
+            description=f"""
+                Run evaluate on data & synthesize files from local dir.
+                {cls.output_description}
+                Makes sense to run only after synthesize command.
+                """,
+        )
+        parser.set_defaults(
+            get_processor=partial(cls.get_local_dir_processor, supported_backends)
+        )
+        cls.add_debug(parser)
+        cls.add_overwrite(parser)
+        cls.add_synthesize_suffix(parser)
+        cls.add_evaluate_suffix(parser)
+        cls.add_evaluator(parser, supported_backends, default_evaluator)
+        cls.add_dir(parser)
