@@ -31,13 +31,13 @@ Then create local_config.py using local_config.py.sample as template.
 
 # for local directory
 # synthesize
-python synthesize_refactored.py synthesize data_dir
+python run.py synthesize data_dir
 
 # evaluate
-python synthesize_refactored.py evaluate data_dir
+python run.py evaluate data_dir
 
 # for S3 bucket directory (S3 running on localstack)
-AWS_DEFAULT_REGION=us-east-1 AWS_SECRET_ACCESS_KEY=test AWS_ACCESS_KEY_ID=test python synthesize_refactored.py synthesize-s3 my_bucket data_dir --s3-endpoint-url https://localhost.localstack.cloud:4566
+AWS_DEFAULT_REGION=us-east-1 AWS_SECRET_ACCESS_KEY=test AWS_ACCESS_KEY_ID=test python run.py synthesize-s3 my_bucket data_dir --s3-endpoint-url https://localhost.localstack.cloud:4566
 
 ```
 
