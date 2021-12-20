@@ -1,7 +1,7 @@
 # Command line tools for data synthesization and evaluation
 
 ## What is it?
-THis is example of commandline tool that allows to traverse directories on various storages and run synthesize/evaluate command on each file.
+This is example of commandline tool that allows to traverse directories on various storages and run synthesize/evaluate command on each file.
 Currently local directory and S3 storages are supported.
 
 
@@ -28,6 +28,9 @@ Then create local_config.py using local_config.py.sample as template.
 
 ```
 . env/bin/activate
+
+# check out possible commands
+python run.py --help
 
 # for local directory
 # synthesize
