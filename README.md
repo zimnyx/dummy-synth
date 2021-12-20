@@ -1,4 +1,4 @@
-# Tools for data synthesization and evaluation
+# Command line tools for data synthesization and evaluation
 
 
 ## Requirements
@@ -17,6 +17,9 @@ pip install -r requirements.txt
 
 ```
 
+Then create local_config.py using local_config.py.sample as template.
+
+
 ## How to run sythesization (Linux/bash)
 
 ```
@@ -28,9 +31,6 @@ python synthesize_refactored.py synthesize data_dir
 
 # evaluate
 python synthesize_refactored.py evaluate data_dir
-
-# both synthesize & evaluate - will be faster than separate commands (less disk IO)
-python synthesize_refactored.py synthesize-and-evaluate data_dir
 
 # for S3 bucket directory (S3 running on localstack)
 AWS_DEFAULT_REGION=us-east-1 AWS_SECRET_ACCESS_KEY=test AWS_ACCESS_KEY_ID=test python synthesize_refactored.py synthesize-s3 my_bucket data_dir --s3-endpoint-url https://localhost.localstack.cloud:4566
