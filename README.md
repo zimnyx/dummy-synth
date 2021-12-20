@@ -1,5 +1,9 @@
 # Command line tools for data synthesization and evaluation
 
+## What is it?
+THis is example of commandline tool that allows to traverse directories on various storages and run synthesize/evaluate command on each file.
+Currently local directory and S3 storages are supported.
+
 
 ## Requirements
 
